@@ -1,0 +1,1 @@
+enum OrderType {none, incoming, outgoing, ready }
