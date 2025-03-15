@@ -18,6 +18,10 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import android.content.BroadcastReceiver
+import android.os.Handler
+import android.os.Looper
+import io.flutter.plugin.common.BinaryMessenger
+import java.util.concurrent.atomic.AtomicBoolean
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "order_alarm"
 
@@ -44,10 +48,13 @@ class MainActivity : FlutterActivity() {
                     stopService(intent)
                     result.success(null)
                 }
+
+
                 else -> result.notImplemented()
             }
         }
     }
+
 }
 
 
@@ -70,7 +77,10 @@ class AlarmService : Service() {
         }
 
         // Start as foreground service with a notification that uses channelId
-        startForeground(1, createNotification())
+        val notification = createNotification()
+
+        // Start foreground service with the notification
+        startForeground(1, notification)
         return START_STICKY
     }
 
@@ -92,7 +102,7 @@ class AlarmService : Service() {
     }
 
     private fun createNotification(): android.app.Notification {
-        // Convert channelId (a String) to a unique integer code
+        createNotificationChannel()
         val uniqueCode = channelId.hashCode()
 
         val contentIntent = Intent(this, AcknowledgeReceiver::class.java).apply {
@@ -127,7 +137,7 @@ class AlarmService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        return NotificationCompat.Builder(this, channelId)
+        return NotificationCompat.Builder(this, "newOne")
             .setContentTitle("New Order Arrived: $channelId")
             .setContentText("Tap anywhere to acknowledge and stop the alarm.")
             .setSmallIcon(R.mipmap.ic_launcher)
@@ -144,15 +154,22 @@ class AlarmService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channelName = "Alarm Notifications"
-            val importance = NotificationManager.IMPORTANCE_HIGH
-            val channel = NotificationChannel(channelId, channelName, importance).apply {
-                description = "Channel for alarm notifications"
-                enableVibration(true)
-                vibrationPattern = longArrayOf(0, 500, 500, 500)
-            }
+            val channelId = "newOne"
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+
+            // Check if channel already exists
+            val existingChannel = notificationManager.getNotificationChannel(channelId)
+            if (existingChannel == null) {
+                // Channel doesn't exist, create it
+                val channelName = "Alarm Notifications"
+                val importance = NotificationManager.IMPORTANCE_HIGH
+                val channel = NotificationChannel(channelId, channelName, importance).apply {
+                    description = "Channel for alarm notifications"
+                    enableVibration(true)
+                    vibrationPattern = longArrayOf(0, 500, 500, 500)
+                }
+                notificationManager.createNotificationChannel(channel)
+            }
         }
     }
 
@@ -182,3 +199,4 @@ class NotificationDeleteReceiver : BroadcastReceiver() {
         context?.stopService(Intent(context, AlarmService::class.java))
     }
 }
+

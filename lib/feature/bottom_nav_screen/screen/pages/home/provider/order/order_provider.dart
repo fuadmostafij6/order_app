@@ -14,6 +14,7 @@ class OrderProvider with ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
   Future<void> addRandomOrder() async {
+    print("Working");
     await _orderService.addRandomOrder();
 
     await fetchOrders();

@@ -1,10 +1,11 @@
 import 'package:bot_toast/bot_toast.dart';
-import 'package:flutter/material.dart';
+import 'package:create_order_app/feature/bottom_nav_screen/screen/pages/home/provider/order/order_provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:create_order_app/core/core.dart';
 import 'package:create_order_app/providers/providers.dart';
 import 'package:provider/provider.dart';
+import 'package:workmanager/workmanager.dart';
 
 import 'core/initializer/initializer.dart';
 
@@ -13,6 +14,9 @@ import 'feature/languages/providers/provider.dart';
 
 void main() {
   Initializer.init(() async {
+
+
+
     runApp(const MyApp());
   });
 }

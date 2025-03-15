@@ -26,5 +26,6 @@ Future<void> setupLocator() async {
   getIt.registerLazySingleton(() => LanguageService(getIt<IsarService>()));
   getIt.registerLazySingleton<ApiClient>(() => ApiClient(baseUrl: baseUrl));
   getIt.registerSingleton<OrderService>(OrderService(getIt<IsarService>()));
+  getIt.registerSingleton<OrderProvider>(OrderProvider());
 
 }

@@ -55,6 +55,11 @@ dependencies:
   phosphor_flutter: ^2.1.0
   skeletonizer: ^1.4.3
   animated_bottom_navigation_bar: ^1.4.0
+  workmanager:
+    git:
+      url: https://github.com/fluttercommunity/flutter_workmanager.git
+      path: workmanager
+      ref: main
 
 
 

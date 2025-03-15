@@ -1,5 +1,10 @@
+import 'dart:io';
+
+import 'package:create_order_app/core/di/service_locator.dart';
+import 'package:create_order_app/feature/bottom_nav_screen/screen/pages/home/provider/order/order_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
 
 class AlarmService {
   static const MethodChannel _channel = MethodChannel('order_alarm');
@@ -8,7 +13,10 @@ class AlarmService {
   /// Requests notification permission for both Android (API 33+)
   /// and iOS. Returns true if permission is granted, otherwise false.
   static Future<bool> requestNotificationPermission() async {
+
+
     // Check if notification permission is already granted.
+  if(Platform.isAndroid){
     if (await Permission.notification.isGranted) {
       print("Notification permission already granted");
       return true;
@@ -22,6 +30,7 @@ class AlarmService {
     } else if (status.isPermanentlyDenied) {
       // Optionally, guide the user to app settings if permission is permanently denied.
       print("Notification permission permanently denied. Please enable it in settings.");
+
       await openAppSettings();
       return false;
     } else {
@@ -29,10 +38,15 @@ class AlarmService {
       return false;
     }
   }
+  else{
+    return false;
+  }
+  }
 
 
   /// Tells the native side to start the alarm notification.
   static Future<void> startAlarmNotification(int notificationId) async {
+    print("workingss");
     try {
       await _channel.invokeMethod('playAlarm', {
         "channelId": "$notificationId", // or any string if you have multiple channels
@@ -43,7 +57,13 @@ class AlarmService {
     }
   }
 
-
+static   Future<void> startBackgroundService() async {
+  try {
+    await _channel.invokeMethod('startService');
+  } on PlatformException catch (e) {
+    print('Failed to start service: ${e.message}');
+  }
+}
   /// Tells the native side to stop the alarm notification.
   static Future<void> stopAlarmNotification() async {
     try {
@@ -62,8 +82,9 @@ class AlarmService {
           final String notificationId = args['notificationId'];
           print("Received notification id: $notificationId");
           print("Alarm acknowledged from native side.");
-          // Here, you can notify your UI or trigger any other action.
+
           break;
+
         default:
           print("Unknown method ${call.method}");
       }
