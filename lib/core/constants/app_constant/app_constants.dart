@@ -27,3 +27,5 @@ export 'style/config/theme_config.dart';
 //Strings
 export 'strings/app_strings.dart';
 
+export 'widget/progress_indicator/circular.dart';
+

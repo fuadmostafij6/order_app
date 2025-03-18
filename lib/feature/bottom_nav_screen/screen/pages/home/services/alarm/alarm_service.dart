@@ -39,7 +39,13 @@ class AlarmService {
     }
   }
   else{
-    return false;
+    try {
+      await _channel.invokeMethod('permission');
+      return true;
+    } on PlatformException catch (e) {
+      print("Failed to start alarm notification: ${e.message}");
+      return false;
+    }
   }
   }
 
@@ -49,21 +55,12 @@ class AlarmService {
     print("workingss");
     try {
       await _channel.invokeMethod('playAlarm', {
-        "channelId": "$notificationId", // or any string if you have multiple channels
-        "notificationId": notificationId
+        "notificationId": notificationId.toString()
       });
     } on PlatformException catch (e) {
       print("Failed to start alarm notification: ${e.message}");
     }
   }
-
-static   Future<void> startBackgroundService() async {
-  try {
-    await _channel.invokeMethod('startService');
-  } on PlatformException catch (e) {
-    print('Failed to start service: ${e.message}');
-  }
-}
   /// Tells the native side to stop the alarm notification.
   static Future<void> stopAlarmNotification() async {
     try {

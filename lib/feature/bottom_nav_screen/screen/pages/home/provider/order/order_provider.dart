@@ -13,6 +13,14 @@ class OrderProvider with ChangeNotifier {
   List<Order> get orders => _orders;
   bool _isLoading = false;
   bool get isLoading => _isLoading;
+
+  int _selectedIndex = 0;
+  int get selectedIndex => _selectedIndex;
+
+  void setSelectedIndex(int index) {
+    _selectedIndex = index;
+    notifyListeners();
+  }
   Future<void> addRandomOrder() async {
     print("Working");
     await _orderService.addRandomOrder();
@@ -24,6 +32,7 @@ class OrderProvider with ChangeNotifier {
   Future<void> fetchOrders() async {
     _isLoading = true;
     _orders = await _orderService.getAllOrders();
+    _orders.sort((a, b) => b.id.compareTo(a.id));
     _isLoading = false; // Set loadi
     notifyListeners(); // Update UI
   }

@@ -26,7 +26,6 @@ class MainActivity : FlutterActivity() {
     private val CHANNEL = "order_alarm"
 
     companion object {
-        // Save a reference so you can send messages later (see step 2)
         var methodChannel: MethodChannel? = null
     }
 
@@ -36,10 +35,11 @@ class MainActivity : FlutterActivity() {
         methodChannel?.setMethodCallHandler { call, result ->
             when (call.method) {
                 "playAlarm" -> {
-                    // Get the channel id sent from Flutter (or default)
                     val channelId = call.argument<String>("channelId") ?: "alarm_channel"
+                    val notificationId = call.argument<String>("notificationId") ?: "alarm_channel"
                     val intent = Intent(this, AlarmService::class.java)
                     intent.putExtra("channel_id", channelId)
+                    intent.putExtra("notification_id", notificationId)
                     startForegroundService(intent)
                     result.success(null)
                 }
@@ -48,39 +48,35 @@ class MainActivity : FlutterActivity() {
                     stopService(intent)
                     result.success(null)
                 }
-
-
                 else -> result.notImplemented()
             }
         }
     }
-
 }
-
 
 class AlarmService : Service() {
     private var mediaPlayer: MediaPlayer? = null
     private var channelId: String = "alarm_channel"
+    private var notificationId: String = "alarm_channel"
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         stopAlarm()
-        // Retrieve channel id passed from Flutter
-        channelId = intent?.getStringExtra("channel_id") ?: "alarm_channel"
+        channelId = "alarm_channel"
+        notificationId = intent?.getStringExtra("notification_id") ?: "alarm_channel"
 
-        // Create notification channel using the provided channel id
         createNotificationChannel()
 
-        // Initialize and start the looping MediaPlayer
         mediaPlayer = MediaPlayer.create(this, R.raw.alarm_sound).apply {
             isLooping = true
             start()
         }
 
-        // Start as foreground service with a notification that uses channelId
         val notification = createNotification()
+        startForeground(notificationId.hashCode(), notification)
 
-        // Start foreground service with the notification
-        startForeground(1, notification)
+        // Create a summary notification to keep them grouped
+        createSummaryNotification()
+
         return START_STICKY
     }
 
@@ -103,64 +99,71 @@ class AlarmService : Service() {
 
     private fun createNotification(): android.app.Notification {
         createNotificationChannel()
-        val uniqueCode = channelId.hashCode()
+        val uniqueCode = notificationId.hashCode()
 
         val contentIntent = Intent(this, AcknowledgeReceiver::class.java).apply {
             action = "com.example.create_order_app.ACTION_ACKNOWLEDGE"
-            putExtra("channel_id", channelId)
+            putExtra("channel_id", notificationId)
+            putExtra("notification_id", notificationId)
         }
         val contentPendingIntent = PendingIntent.getBroadcast(
-            this,
-            uniqueCode,
-            contentIntent,
+            this, uniqueCode, contentIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Action button intent
         val ackIntent = Intent(this, AcknowledgeReceiver::class.java).apply {
             action = "com.example.create_order_app.ACTION_ACKNOWLEDGE"
             putExtra("channel_id", channelId)
+            putExtra("notification_id", notificationId)
         }
         val ackPendingIntent = PendingIntent.getBroadcast(
-            this,
-            uniqueCode + 1, // Different unique code
-            ackIntent,
+            this, uniqueCode + 1, ackIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Delete intent: for when the user dismisses the notification
         val deleteIntent = Intent(this, NotificationDeleteReceiver::class.java)
         val deletePendingIntent = PendingIntent.getBroadcast(
-            this,
-            uniqueCode + 2, // Another unique code
-            deleteIntent,
+            this, uniqueCode + 2, deleteIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         return NotificationCompat.Builder(this, "newOne")
-            .setContentTitle("New Order Arrived: $channelId")
+            .setContentTitle("New Order Arrived: $notificationId")
             .setContentText("Tap anywhere to acknowledge and stop the alarm.")
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentIntent(contentPendingIntent) // This handles taps on the notification body
-            .addAction(0, "Acknowledge", ackPendingIntent) // Optional explicit button
+            .setContentIntent(contentPendingIntent)
+            .addAction(0, "Acknowledge", ackPendingIntent)
             .setDeleteIntent(deletePendingIntent)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setGroup("Order")
             .setVibrate(longArrayOf(0, 500, 500, 500))
             .build()
     }
 
+    private fun createSummaryNotification() {
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        val summaryNotification = NotificationCompat.Builder(this, "newOne")
+            .setContentTitle("New Orders")
+            .setContentText("You have new orders pending")
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setGroup("Order")
+            .setGroupSummary(true)  // Summary notification for grouping
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+
+        notificationManager.notify(0, summaryNotification)  // Always use ID 0 for summary
+    }
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channelId = "newOne"
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-            // Check if channel already exists
             val existingChannel = notificationManager.getNotificationChannel(channelId)
             if (existingChannel == null) {
-                // Channel doesn't exist, create it
                 val channelName = "Alarm Notifications"
                 val importance = NotificationManager.IMPORTANCE_HIGH
                 val channel = NotificationChannel(channelId, channelName, importance).apply {
@@ -176,27 +179,29 @@ class AlarmService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 }
 
-
 class AcknowledgeReceiver : BroadcastReceiver() {
-    private var channelId: String = "alarm_channel"
     override fun onReceive(context: Context?, intent: Intent?) {
         Log.d("AcknowledgeReceiver", "Acknowledge button pressed, stopping alarm service")
-        // Stop the alarm service
+
         val stopIntent = Intent(context, AlarmService::class.java)
         context?.stopService(stopIntent)
 
+        val notificationId = intent?.getStringExtra("notification_id") ?: "alarm_channel"
 
-        channelId = intent?.getStringExtra("channel_id") ?: "alarm_channel"
-        // Send a message back to Flutter that the alarm was acknowledged
-        MainActivity.methodChannel?.invokeMethod("acknowledged", mapOf("notificationId" to channelId))
+        // Remove notification on acknowledge
+        val notificationManager = context?.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+        notificationManager?.cancel(notificationId.hashCode())
+
+        // Send acknowledgment message to Flutter
+        MainActivity.methodChannel?.invokeMethod("acknowledged", mapOf("notificationId" to notificationId))
     }
 }
 
 class NotificationDeleteReceiver : BroadcastReceiver() {
-    // Correct method signature with nullable parameters
     override fun onReceive(context: Context?, intent: Intent?) {
         Log.d("NotificationDelete", "Notification dismissed, stopping service")
         context?.stopService(Intent(context, AlarmService::class.java))
     }
 }
+
 

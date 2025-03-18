@@ -2,7 +2,6 @@
 import 'package:create_order_app/core/core.dart';
 import 'package:provider/provider.dart';
 import 'package:create_order_app/feature/feature.dart';
-import 'package:workmanager/workmanager.dart';
 class Home extends StatefulWidget {
   const Home({super.key});
 
@@ -11,30 +10,15 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  load()async{
-    String uniqueName = DateTime.now().microsecond.toString();
-  //  Provider.of<OrderProvider>(context, listen: false).addRandomOrder();
-   await Workmanager().registerPeriodicTask(uniqueName, "Auto add order",
-       inputData: {
-     "channelId":110
-       },
-       initialDelay: Duration(milliseconds: 100),
-       frequency: Duration(minutes: 15), flexInterval: Duration(minutes: 15));
-   // await initPlatformState();
-   //  BackgroundFetch.start().then((int status) {
-   //    print('[BackgroundFetch] start success: $status');
-   //  }).catchError((e) {
-   //    print('[BackgroundFetch] start FAILURE: $e');
-   //  });
-  }
   @override
   void initState() {
 
      WidgetsBinding.instance.addPostFrameCallback((_) async {
       final result = await AlarmService.requestNotificationPermission();
+     await Provider.of<OrderProvider>(context, listen: false).fetchOrders();
       if(result) {
         print("true");
-        await  load();
+       // await  load();
       }
       else{
         print("true");

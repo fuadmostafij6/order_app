@@ -1,11 +1,11 @@
 import 'package:bot_toast/bot_toast.dart';
 import 'package:create_order_app/feature/bottom_nav_screen/screen/pages/home/provider/order/order_provider.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:create_order_app/core/core.dart';
 import 'package:create_order_app/providers/providers.dart';
 import 'package:provider/provider.dart';
-import 'package:workmanager/workmanager.dart';
 
 import 'core/initializer/initializer.dart';
 
@@ -14,6 +14,8 @@ import 'feature/languages/providers/provider.dart';
 
 void main() {
   Initializer.init(() async {
+   // debugRepaintRainbowEnabled = true;
+  // debugPaintBaselinesEnabled = true;
 
 
 
@@ -29,6 +31,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: ProviderList.providerList,
+
       child: ScreenUtilInit(
           designSize:  Size(context.screenWidth, context.screenHeight),
       minTextAdapt: true,
@@ -41,6 +44,7 @@ class MyApp extends StatelessWidget {
                   // Set the locale based on the provider's locale value.
 
               return MaterialApp(
+                debugShowCheckedModeBanner: false,
 
                 title: Strings.appName,
                 theme: ThemeConfig.lightTheme,

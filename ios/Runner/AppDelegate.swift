@@ -1,5 +1,3 @@
-// AppDelegate.swift
-
 import UIKit
 import Flutter
 import AVFoundation
@@ -10,24 +8,25 @@ import UserNotifications
     private let CHANNEL = "order_alarm"
     private var audioPlayer: AVAudioPlayer?
     private var notificationCenter = UNUserNotificationCenter.current()
-    
+
     override func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
         let controller = window?.rootViewController as! FlutterViewController
         let channel = FlutterMethodChannel(name: CHANNEL, binaryMessenger: controller.binaryMessenger)
-        
+
         channel.setMethodCallHandler { [weak self] (call: FlutterMethodCall, result: @escaping FlutterResult) in
             switch call.method {
             case "playAlarm":
                 let args = call.arguments as? [String: Any]
-                let channelId = args?["channelId"] as? String ?? "alarm_channel"
+                let channelId = "alarm_channel"
+                let notificationId = args?["notificationId"] as? String ?? "alarm_channel"
                 self?.requestNotificationPermission { granted in
                     if granted {
                         print("Notification permission granted")
                         self?.playAlarm(channelId: channelId)
-                        self?.scheduleNotification(channelId: channelId)
+                        self?.scheduleNotification(channelId: channelId, notificationId: notificationId)
                         result(nil)
                     } else {
                         result(FlutterError(code: "PERMISSION_DENIED",
@@ -39,6 +38,11 @@ import UserNotifications
             case "stopAlarm":
                 self?.stopAlarm()
                 result(nil)
+
+            case "permission":
+                self?.requestNotificationPermission { granted in
+                    result(granted)
+                }
 
             default:
                 result(FlutterMethodNotImplemented)
@@ -122,17 +126,17 @@ import UserNotifications
         removePendingNotifications()
     }
 
-    private func scheduleNotification(channelId: String) {
+    private func scheduleNotification(channelId: String, notificationId: String) {
         let content = UNMutableNotificationContent()
-        content.title = "New Order Arrived: \(channelId)"
+        content.title = "New Order Arrived: \(notificationId)"
         content.body = "Tap to acknowledge and stop the alarm."
         content.sound = UNNotificationSound(named: UNNotificationSoundName(rawValue: "alarm_sound.mp3"))
         content.categoryIdentifier = "ALARM_CATEGORY"
-        content.userInfo = ["notificationID": channelId]
+        content.userInfo = ["notificationID": notificationId]
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.5, repeats: false)
         let request = UNNotificationRequest(
-            identifier: channelId,
+            identifier: notificationId,
             content: content,
             trigger: trigger
         )

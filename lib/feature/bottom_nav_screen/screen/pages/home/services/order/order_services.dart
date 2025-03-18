@@ -19,6 +19,8 @@ class OrderService {
     final minItems = 5;
     final maxItems = 10;
     final numItems = random.nextInt(maxItems - minItems + 1) + minItems;
+    final orderTypes = OrderType.values.where((e) => e != OrderType.none).toList();
+    final randomType = orderTypes[random.nextInt(orderTypes.length)];
 
     // Create a list of random items
     List<Item> items = List.generate(numItems, (_) {
@@ -37,7 +39,7 @@ class OrderService {
       ..orderDetails = items
       ..totalAmount = totalAmount
       ..estDeliveryTime = DateTime.now().add(Duration(minutes: random.nextInt(60) + 10))
-      ..type = OrderType.none;
+      ..type = randomType;
 
     final isar = await _isarService.db;
 
@@ -45,6 +47,7 @@ class OrderService {
       await isar.orders.put(order);
     });
     await AlarmService.startAlarmNotification(order.id);
+
 
   }
 
